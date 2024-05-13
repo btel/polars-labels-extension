@@ -40,7 +40,7 @@ fn sum_i64(inputs: &[Series]) -> PolarsResult<Series> {
 fn list_idx_dtype(input_fields: &[Field]) -> PolarsResult<Field> {
     let field = Field::new(
         input_fields[0].name(),
-        DataType::List(Box::new(DataType::Int64)),
+        DataType::List(Box::new(DataType::String)),
     );
     Ok(field.clone())
 }
@@ -60,18 +60,18 @@ fn to_sparse(inputs: &[Series]) -> PolarsResult<Series> {
         })
         .collect();
 
-    let mut builder: ListPrimitiveChunkedBuilder<Int64Type> =
-        ListPrimitiveChunkedBuilder::new(left.name(), left.len(), inputs.len(), DataType::Int64);
+    let mut builder: ListStringChunkedBuilder =
+        ListStringChunkedBuilder::new(left.name(), left.len(), inputs.len());
 
     loop {
-        let values: Option<Vec<Option<i64>>> = cols
+        let values: Option<Vec<Option<&str>>> = cols
             .iter_mut()
             .map(|(name, x)| {
                 let value = x.next();
                 match value {
                     Some(Some(v)) => {
                         if (v == 1) {
-                            Some(Some(name.parse::<i64>().unwrap()))
+                            Some(Some(*name))
                         } else {
                             Some(None)
                         }
@@ -79,15 +79,11 @@ fn to_sparse(inputs: &[Series]) -> PolarsResult<Series> {
                     Some(None) => Some(None),
                     None => None,
                 }
-            })
-            .collect();
+            }).collect();
         if let Some(vec) = values {
-            builder.append_series(&Series::from_vec(
-                &"row",
-                vec.iter()
-                    .filter_map(|x: &Option<i64>| *x)
-                    .collect::<Vec<i64>>(),
-            ))?;
+            builder.append_values_iter(vec.iter()
+                    .filter_map(|x: &Option<&str>| *x)
+            );
         } else {
             break;
         }

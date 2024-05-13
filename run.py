@@ -12,4 +12,4 @@ df = pl.DataFrame({'a': [1, 5, 2], 'b': [3, None, -1], 'c': [4, 1, 2]})
 print(df.select(sum_i64(pl.col("*"))))
 
 df = pl.DataFrame({'1': [1, 0, 1], '2': [0, 1, 1]})
-print(df.select(to_sparse(pl.col("*"))))
+print(df.select(to_sparse(pl.col("*")).list.eval(pl.col("").str.to_integer())))

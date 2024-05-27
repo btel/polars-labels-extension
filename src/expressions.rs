@@ -1,7 +1,6 @@
 #![allow(clippy::unused_unit)]
 use polars::prelude::arity::binary_elementwise;
 use polars::prelude::*;
-use pyo3::types::PyIterator;
 use pyo3_polars::derive::polars_expr;
 use std::fmt::Write;
 
@@ -47,16 +46,27 @@ fn list_idx_dtype(input_fields: &[Field]) -> PolarsResult<Field> {
 
 #[polars_expr(output_type_func=list_idx_dtype)]
 fn to_sparse(inputs: &[Series]) -> PolarsResult<Series> {
-    let left = inputs[0].i64()?;
-    let mut cols: Vec<PolarsResult<&ChunkedArray<Int64Type>>> = inputs
+    let left = &inputs[0];
+    let mut cols: Vec<(&str, std::vec::IntoIter<Option<bool>>)> = inputs
         .iter()
-        .map(|x| x.i64())
-        .collect::<Vec<PolarsResult<&ChunkedArray<Int64Type>>>>();
-    let mut cols: Vec<(&str, Box<dyn PolarsIterator<Item = Option<i64>>>)> = cols
-        .into_iter()
         .map(|x| {
-            let v = x.unwrap();
-            (v.name(), v.into_iter())
+            let values_iterators = match x.dtype() {
+                DataType::Int64 => x
+                    .i64()
+                    .unwrap()
+                    .into_iter()
+                    .map(|x| x.map(|v| v == 1))
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                DataType::Boolean => x
+                    .bool()
+                    .unwrap()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+                    .into_iter(),
+                _ => panic!("unsupported column data type"),
+            };
+            (x.name(), values_iterators)
         })
         .collect();
 
@@ -70,7 +80,7 @@ fn to_sparse(inputs: &[Series]) -> PolarsResult<Series> {
                 let value = x.next();
                 match value {
                     Some(Some(v)) => {
-                        if (v == 1) {
+                        if v {
                             Some(Some(*name))
                         } else {
                             Some(None)
@@ -79,11 +89,10 @@ fn to_sparse(inputs: &[Series]) -> PolarsResult<Series> {
                     Some(None) => Some(None),
                     None => None,
                 }
-            }).collect();
+            })
+            .collect();
         if let Some(vec) = values {
-            builder.append_values_iter(vec.iter()
-                    .filter_map(|x: &Option<&str>| *x)
-            );
+            builder.append_values_iter(vec.iter().filter_map(|x: &Option<&str>| *x));
         } else {
             break;
         }

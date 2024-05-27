@@ -13,3 +13,6 @@ print(df.select(sum_i64(pl.col("*"))))
 
 df = pl.DataFrame({'1': [1, 0, 1], '2': [0, 1, 1]})
 print(df.select(to_sparse(pl.col("*")).list.eval(pl.col("").str.to_integer())))
+
+df = pl.DataFrame({'a': [True, False, True], 'b': [False, True, True]})
+print(df.select(to_sparse(pl.col("*"))))

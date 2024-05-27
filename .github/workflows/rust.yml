@@ -28,5 +28,8 @@ jobs:
         maturin develop --release
     - run: | 
         . .venv/bin/activate
+        python -m pytest tests
+    - run: | 
+        . .venv/bin/activate
         python run.py
   

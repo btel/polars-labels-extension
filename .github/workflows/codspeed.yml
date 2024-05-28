@@ -1,0 +1,33 @@
+name: codspeed-benchmarks
+
+on:
+  # Run on pushes to the main branch
+  push:
+    branches:
+      - "master" # or "main"
+  # Run on pull requests
+  pull_request:
+  # `workflow_dispatch` allows CodSpeed to trigger backtest
+  # performance analysis in order to generate initial data.
+  workflow_dispatch:
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python3 -m venv .venv
+      - run: |
+          . .venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest-codspeed
+      - run: |
+          . .venv/bin/activate
+          maturin develop --release
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v2
+        with:
+          run: ".venv/bin/python -m pytest benchmarks --codspeed"

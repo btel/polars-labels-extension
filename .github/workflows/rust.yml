@@ -1,0 +1,35 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: python3 -m venv .venv
+    - run: |
+        . .venv/bin/activate
+        pip install -r requirements.txt
+    - run: |
+        . .venv/bin/activate
+        maturin develop --release
+    - run: | 
+        . .venv/bin/activate
+        python -m pytest tests
+    - run: | 
+        . .venv/bin/activate
+        python run.py
+  

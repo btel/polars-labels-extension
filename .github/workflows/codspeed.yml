@@ -23,7 +23,7 @@ jobs:
       - run: |
           . .venv/bin/activate
           pip install -r requirements.txt
-          pip install python-codspeed
+          pip install pytest-codspeed
       - run: |
           . .venv/bin/activate
           maturin develop --release

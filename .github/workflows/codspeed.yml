@@ -29,4 +29,4 @@ jobs:
       - name: Run benchmarks
         uses: CodSpeedHQ/action@v2
         with:
-          run: "pytest benchmarks"
+          run: ".venv/bin/python -m pytest benchmarks"
